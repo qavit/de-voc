@@ -1,13 +1,21 @@
 # 技術架構 (Architecture)
 
-本專案採用前後端分離架構，並完全以現代化、極速的開發工具搭建：
+本專案採前後端分離架構建置。
 
-## Backend (後端)
-- **Framework**: Python + FastAPI
-- **Package Manager**: [uv](https://github.com/astral-sh/uv) (採用 Rust 開發的極速 Python 套件管理器)
-- **Database**: SQLite + SQLAlchemy (本地儲存，確保完全離線可用且保護私人筆記隱私)
-- **特色功能**: 自動化資料清洗、解決欄位錯位、標籤分離（將情境分類與中文釋義拆開）、德文強變化動詞與詞性標記。
+## 後端 (Backend)
+- **框架**: Python + FastAPI
+- **套件管理**: [uv](https://github.com/astral-sh/uv)
+- **資料庫**: SQLite + SQLAlchemy。資料儲存於本地。
+- **功能特性**: 
+  - 資料清理與遷移。
+  - 將原始混合標籤解析為獨立的情境與次類別欄位。
+  - 支援單字之詞性與強變化動詞 (Strong Verb) 記錄。
+  - 實作 SM-2 間隔重複演算法 (SRS) API。
 
-## Frontend (前端)
-- **Framework**: React + Vite + TypeScript (使用 `npm` 管理)
-- **UI/UX**: 高質感的 Dark Mode 深色介面表單、採用防抖 (Debounce) 技術實現極速模糊搜尋（過濾字義、拼字或標籤）。
+## 前端 (Frontend)
+- **框架**: React + Vite + TypeScript
+- **套件管理**: npm
+- **功能特性**:
+  - 單字瀏覽與管理介面，實作防抖 (Debounce) 機制的輸入檢索。
+  - 實作翻轉字卡測驗模式，與後端 API 結合以更新單字學習間隔。
+  - 客製深色主題 (Dark Mode) 排版。
