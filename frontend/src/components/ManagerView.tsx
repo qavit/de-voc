@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import { fetchVocabularyDetail, fetchVocabularies } from '../lib/api'
+import { fetchVocabularyDetail, fetchVocabularies, llmAutofill, llmGenerateExamples, llmValidate, type LLMUsageDTO } from '../lib/api'
 import { useI18n } from '../lib/i18n'
 import type { VocabularyDetailDTO, VocabularyListItemDTO } from '../types/api'
 
@@ -27,6 +27,12 @@ export function ManagerView() {
   const [loading, setLoading] = useState(true)
   const [detailLoading, setDetailLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  type AiActionState = 'idle' | 'loading' | 'done' | 'error'
+  const [aiAutofillState, setAiAutofillState] = useState<AiActionState>('idle')
+  const [aiExamplesState, setAiExamplesState] = useState<AiActionState>('idle')
+  const [aiValidateState, setAiValidateState] = useState<AiActionState>('idle')
+  const [aiResult, setAiResult] = useState<{ type: string; content: string; usage: LLMUsageDTO } | null>(null)
 
   useEffect(() => {
     const id = window.setTimeout(() => {
@@ -70,7 +76,62 @@ export function ManagerView() {
       .finally(() => setDetailLoading(false))
   }, [selectedId, t])
 
+  const resetAiState = () => {
+    setAiAutofillState('idle')
+    setAiExamplesState('idle')
+    setAiValidateState('idle')
+    setAiResult(null)
+  }
+
+  const handleAutofill = async () => {
+    if (!selectedId) return
+    setAiAutofillState('loading')
+    setAiResult(null)
+    try {
+      const res = await llmAutofill(selectedId)
+      setAiResult({ type: 'autofill', content: JSON.stringify(res.updated_fields, null, 2), usage: res.usage })
+      setAiAutofillState('done')
+      fetchVocabularyDetail(selectedId).then(setSelectedDetail)
+    } catch {
+      setAiAutofillState('error')
+    }
+  }
+
+  const handleGenerateExamples = async () => {
+    if (!selectedId) return
+    setAiExamplesState('loading')
+    setAiResult(null)
+    try {
+      const res = await llmGenerateExamples(selectedId)
+      const content = res.examples.map(e => `DE: ${e.de}\nZH: ${e.zh}`).join('\n\n')
+      setAiResult({ type: 'examples', content, usage: res.usage })
+      setAiExamplesState('done')
+      fetchVocabularyDetail(selectedId).then(setSelectedDetail)
+    } catch {
+      setAiExamplesState('error')
+    }
+  }
+
+  const handleValidate = async () => {
+    if (!selectedId) return
+    setAiValidateState('loading')
+    setAiResult(null)
+    try {
+      const res = await llmValidate(selectedId)
+      const content = res.issues.length === 0
+        ? '✓ No issues found.'
+        : res.issues.map(i => `[${i.field}] ${i.message}`).join('\n')
+      setAiResult({ type: 'validate', content, usage: res.usage })
+      setAiValidateState('done')
+    } catch {
+      setAiValidateState('error')
+    }
+  }
+
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE))
+
+  // Reset AI state when selected item changes
+  useEffect(() => { resetAiState() }, [selectedId])
 
   return (
     <div className="manager-container">
@@ -247,6 +308,46 @@ export function ManagerView() {
                   <p>{selectedDetail.notes}</p>
                 </div>
               )}
+
+              <div className="detail-block ai-actions-block">
+                <h3>AI Actions <span className="ai-badge">⚡</span></h3>
+                <div className="ai-buttons">
+                  <button
+                    className={`btn-ai ${aiAutofillState}`}
+                    onClick={handleAutofill}
+                    disabled={aiAutofillState === 'loading'}
+                  >
+                    {aiAutofillState === 'loading' ? '…' : aiAutofillState === 'done' ? '✓' : aiAutofillState === 'error' ? '✗' : ''}
+                    {' '}Auto-fill Grammar
+                  </button>
+                  <button
+                    className={`btn-ai ${aiExamplesState}`}
+                    onClick={handleGenerateExamples}
+                    disabled={aiExamplesState === 'loading'}
+                  >
+                    {aiExamplesState === 'loading' ? '…' : aiExamplesState === 'done' ? '✓' : aiExamplesState === 'error' ? '✗' : ''}
+                    {' '}Generate Examples
+                  </button>
+                  <button
+                    className={`btn-ai ${aiValidateState}`}
+                    onClick={handleValidate}
+                    disabled={aiValidateState === 'loading'}
+                  >
+                    {aiValidateState === 'loading' ? '…' : aiValidateState === 'done' ? '✓' : aiValidateState === 'error' ? '✗' : ''}
+                    {' '}Validate Entry
+                  </button>
+                </div>
+                {aiResult && (
+                  <div className="ai-result">
+                    <pre className="ai-result-content">{aiResult.content}</pre>
+                    <p className="ai-usage">
+                      {aiResult.usage.provider} / {aiResult.usage.model}
+                      {' · '}{aiResult.usage.input_tokens}↑ {aiResult.usage.output_tokens}↓
+                      {' · '}${aiResult.usage.cost_usd.toFixed(5)}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </aside>

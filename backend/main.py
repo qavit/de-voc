@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.database import Base, engine
-from backend.routers import review, stats, vocabularies
+from backend.routers import llm, review, stats, vocabularies
 
 Base.metadata.create_all(bind=engine)
 
@@ -19,6 +19,7 @@ app.add_middleware(
 app.include_router(vocabularies.router)
 app.include_router(review.router)
 app.include_router(stats.router)
+app.include_router(llm.router)
 
 
 @app.get("/")

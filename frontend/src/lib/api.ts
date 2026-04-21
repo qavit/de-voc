@@ -45,3 +45,37 @@ export function submitReviewEvent(vocabularyId: number, grade: number, sessionId
 export function fetchOverviewStats() {
   return request<StatsOverviewDTO>('/api/stats/overview')
 }
+
+// ---------------------------------------------------------------------------
+// LLM actions
+// ---------------------------------------------------------------------------
+
+export interface LLMUsageDTO {
+  provider: string
+  model: string
+  input_tokens: number
+  output_tokens: number
+  cost_usd: number
+}
+
+export function llmAutofill(vocabularyId: number) {
+  return request<{ updated_fields: Record<string, unknown>; usage: LLMUsageDTO }>(
+    `/api/llm/vocabularies/${vocabularyId}/autofill`,
+    { method: 'POST' },
+  )
+}
+
+export function llmGenerateExamples(vocabularyId: number) {
+  return request<{ examples: { de: string; zh: string }[]; usage: LLMUsageDTO }>(
+    `/api/llm/vocabularies/${vocabularyId}/examples`,
+    { method: 'POST' },
+  )
+}
+
+export function llmValidate(vocabularyId: number) {
+  return request<{ issues: { field: string; message: string }[]; usage: LLMUsageDTO }>(
+    `/api/llm/vocabularies/${vocabularyId}/validate`,
+    { method: 'POST' },
+  )
+}
+
