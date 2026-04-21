@@ -1,16 +1,11 @@
 import { useEffect, useState } from 'react'
 
 import { fetchDueSession, fetchOverviewStats, submitReviewEvent } from '../lib/api'
+import { useI18n } from '../lib/i18n'
 import type { DueReviewResponse, StatsOverviewDTO, VocabularyDetailDTO } from '../types/api'
 
-const GRADE_LABELS = [
-  { grade: 0, label: 'Again', hint: 'Restart to 1 day', className: 'again' },
-  { grade: 1, label: 'Hard', hint: 'Shorten interval', className: 'hard' },
-  { grade: 2, label: 'Good', hint: 'Keep schedule', className: 'good' },
-  { grade: 3, label: 'Easy', hint: 'Extend interval', className: 'easy' },
-] as const
-
 export function ReviewView() {
+  const { t, formatNumber } = useI18n()
   const [sessionData, setSessionData] = useState<DueReviewResponse | null>(null)
   const [stats, setStats] = useState<StatsOverviewDTO | null>(null)
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -30,7 +25,7 @@ export function ReviewView() {
       setStats(overview)
     } catch (err) {
       console.error(err)
-      setError('Failed to load review session.')
+      setError(t('review.loadError'))
     } finally {
       setLoading(false)
     }
@@ -38,7 +33,7 @@ export function ReviewView() {
 
   useEffect(() => {
     void loadSession()
-  }, [])
+  }, [t])
 
   const session = sessionData?.session ?? null
   const cards = sessionData?.cards ?? []
@@ -63,21 +58,28 @@ export function ReviewView() {
       setStats(overview)
     } catch (err) {
       console.error(err)
-      setError('Failed to save review result.')
+      setError(t('review.saveError'))
     } finally {
       setSubmitting(false)
     }
   }
 
+  const gradeLabels = [
+    { grade: 0, label: t('review.gradeAgain'), hint: t('review.gradeAgainHint'), className: 'again' },
+    { grade: 1, label: t('review.gradeHard'), hint: t('review.gradeHardHint'), className: 'hard' },
+    { grade: 2, label: t('review.gradeGood'), hint: t('review.gradeGoodHint'), className: 'good' },
+    { grade: 3, label: t('review.gradeEasy'), hint: t('review.gradeEasyHint'), className: 'easy' },
+  ] as const
+
   if (loading) {
-    return <div className="card empty-state">Loading review session...</div>
+    return <div className="card empty-state">{t('review.loadingSession')}</div>
   }
 
   if (error) {
     return (
       <div className="card review-empty">
         <p className="error-state">{error}</p>
-        <button onClick={() => void loadSession()}>Retry</button>
+        <button onClick={() => void loadSession()}>{t('common.retry')}</button>
       </div>
     )
   }
@@ -85,10 +87,10 @@ export function ReviewView() {
   if (!session || cards.length === 0 || currentIndex >= cards.length) {
     return (
       <div className="card review-empty">
-        <p className="eyebrow">Study Session</p>
-        <h2>All caught up</h2>
-        <p>No cards are currently due. You can refresh to start a new session later.</p>
-        <button onClick={() => void loadSession()}>Refresh session</button>
+        <p className="eyebrow">{t('review.eyebrow')}</p>
+        <h2>{t('review.allCaughtUp')}</h2>
+        <p>{t('review.allCaughtUpBody')}</p>
+        <button onClick={() => void loadSession()}>{t('review.refresh')}</button>
       </div>
     )
   }
@@ -96,15 +98,15 @@ export function ReviewView() {
   return (
     <div className="review-shell">
       <section className="card review-sidebar">
-        <p className="eyebrow">Session</p>
-        <h2>今天的複習節奏</h2>
+        <p className="eyebrow">{t('review.sessionEyebrow')}</p>
+        <h2>{t('review.title')}</h2>
         <div className="meta-grid compact">
-          <span>Session ID: {session.id}</span>
-          <span>Completed: {session.completed_cards} / {session.total_cards}</span>
-          <span>Current Card: {currentIndex + 1} / {cards.length}</span>
-          <span>Due Cards: {stats?.due_cards ?? cards.length}</span>
-          <span>30-day Reviews: {stats?.reviewed_last_30_days ?? '-'}</span>
-          <span>30-day Sessions: {stats?.completed_sessions_last_30_days ?? '-'}</span>
+          <span>{t('review.sessionId', { id: formatNumber(session.id) })}</span>
+          <span>{t('review.completed', { completed: formatNumber(session.completed_cards), total: formatNumber(session.total_cards) })}</span>
+          <span>{t('review.currentCard', { current: formatNumber(currentIndex + 1), total: formatNumber(cards.length) })}</span>
+          <span>{t('review.dueCards', { count: formatNumber(stats?.due_cards ?? cards.length) })}</span>
+          <span>{t('review.reviews30', { count: formatNumber(stats?.reviewed_last_30_days ?? 0) })}</span>
+          <span>{t('review.sessions30', { count: formatNumber(stats?.completed_sessions_last_30_days ?? 0) })}</span>
         </div>
       </section>
 
@@ -112,9 +114,9 @@ export function ReviewView() {
         <div className={`flashcard ${flipped ? 'flipped' : ''}`} onClick={() => !flipped && setFlipped(true)}>
           <div className="flashcard-inner">
             <div className="flashcard-front">
-              <p className="eyebrow">Tap to reveal</p>
+              <p className="eyebrow">{t('review.tapToReveal')}</p>
               <h1>{activeCard.lemma}</h1>
-              <p>{activeCard.part_of_speech ?? 'unknown part of speech'}</p>
+              <p>{activeCard.part_of_speech ?? t('review.unknownPos')}</p>
             </div>
 
             <div className="flashcard-back">
@@ -127,7 +129,7 @@ export function ReviewView() {
                 ))}
               </div>
               {activeCard.german_detail?.verb_patterns.length ? (
-                <p>Patterns: {activeCard.german_detail.verb_patterns.join(', ')}</p>
+                <p>{t('review.patterns', { value: activeCard.german_detail.verb_patterns.join(', ') })}</p>
               ) : null}
               {!!activeCard.tags.length && (
                 <div className="tag-list">
@@ -144,7 +146,7 @@ export function ReviewView() {
 
         {flipped ? (
           <div className="actions-grid">
-            {GRADE_LABELS.map((entry) => (
+            {gradeLabels.map((entry) => (
               <button
                 key={entry.grade}
                 className={`rate-button ${entry.className}`}
@@ -157,7 +159,7 @@ export function ReviewView() {
             ))}
           </div>
         ) : (
-          <p className="review-hint">Flip the card to record your review result.</p>
+          <p className="review-hint">{t('review.flipHint')}</p>
         )}
       </section>
     </div>
