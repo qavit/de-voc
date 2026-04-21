@@ -72,69 +72,72 @@ export function ReviewView() {
   ] as const
 
   if (loading) {
-    return <div className="card empty-state">{t('review.loadingSession')}</div>
+    return <div className="loading">{t('review.loadingSession')}</div>
   }
 
   if (error) {
     return (
-      <div className="card review-empty">
+      <div className="review-done">
         <p className="error-state">{error}</p>
-        <button onClick={() => void loadSession()}>{t('common.retry')}</button>
+        <button className="btn-primary" onClick={() => void loadSession()}>{t('common.retry')}</button>
       </div>
     )
   }
 
   if (!session || cards.length === 0 || currentIndex >= cards.length) {
     return (
-      <div className="card review-empty">
+      <div className="review-done">
         <p className="eyebrow">{t('review.eyebrow')}</p>
         <h2>{t('review.allCaughtUp')}</h2>
         <p>{t('review.allCaughtUpBody')}</p>
-        <button onClick={() => void loadSession()}>{t('review.refresh')}</button>
+        <button className="btn-primary" onClick={() => void loadSession()}>{t('review.refresh')}</button>
       </div>
     )
   }
 
   return (
-    <div className="review-shell">
-      <section className="card review-sidebar">
-        <p className="eyebrow">{t('review.sessionEyebrow')}</p>
-        <h2>{t('review.title')}</h2>
-        <div className="meta-grid compact">
-          <span>{t('review.sessionId', { id: formatNumber(session.id) })}</span>
-          <span>{t('review.completed', { completed: formatNumber(session.completed_cards), total: formatNumber(session.total_cards) })}</span>
-          <span>{t('review.currentCard', { current: formatNumber(currentIndex + 1), total: formatNumber(cards.length) })}</span>
-          <span>{t('review.dueCards', { count: formatNumber(stats?.due_cards ?? cards.length) })}</span>
-          <span>{t('review.reviews30', { count: formatNumber(stats?.reviewed_last_30_days ?? 0) })}</span>
-          <span>{t('review.sessions30', { count: formatNumber(stats?.completed_sessions_last_30_days ?? 0) })}</span>
+    <div className="review-container">
+      <div className="review-header">
+        <div>
+          <p className="eyebrow">{t('review.sessionEyebrow')}</p>
+          <h2>{t('review.title')}</h2>
         </div>
-      </section>
+        <span className="progress-badge">{t('review.dueCards', { count: formatNumber(cards.length - currentIndex) })}</span>
+      </div>
+
+      <div className="review-stats">
+        <span>{t('review.sessionId', { id: formatNumber(session.id) })}</span>
+        <span>{t('review.completed', { completed: formatNumber(session.completed_cards), total: formatNumber(session.total_cards) })}</span>
+        <span>{t('review.currentCard', { current: formatNumber(currentIndex + 1), total: formatNumber(cards.length) })}</span>
+        <span>{t('review.reviews30', { count: formatNumber(stats?.reviewed_last_30_days ?? 0) })}</span>
+        <span>{t('review.sessions30', { count: formatNumber(stats?.completed_sessions_last_30_days ?? 0) })}</span>
+      </div>
 
       <section className="review-main">
         <div className={`flashcard ${flipped ? 'flipped' : ''}`} onClick={() => !flipped && setFlipped(true)}>
           <div className="flashcard-inner">
             <div className="flashcard-front">
               <p className="eyebrow">{t('review.tapToReveal')}</p>
-              <h1>{activeCard.lemma}</h1>
+              <h1 className="flashcard-word">{activeCard.lemma}</h1>
               <p>{activeCard.part_of_speech ?? t('review.unknownPos')}</p>
             </div>
 
             <div className="flashcard-back">
-              <h1>{activeCard.lemma}</h1>
+              <h1 className="flashcard-word">{activeCard.lemma}</h1>
               <div className="plain-list">
                 {activeCard.meanings.map((meaning) => (
-                  <p key={`${meaning.language_code}-${meaning.position}`}>
+                  <p key={`${meaning.language_code}-${meaning.position}`} className="flashcard-meaning">
                     <strong>{meaning.language_code.toUpperCase()}</strong>: {meaning.text}
                   </p>
                 ))}
               </div>
               {activeCard.german_detail?.verb_patterns.length ? (
-                <p>{t('review.patterns', { value: activeCard.german_detail.verb_patterns.join(', ') })}</p>
+                <p className="flashcard-eng">{t('review.patterns', { value: activeCard.german_detail.verb_patterns.join(', ') })}</p>
               ) : null}
               {!!activeCard.tags.length && (
-                <div className="tag-list">
+                <div className="tag-container justify-center mt-4">
                   {activeCard.tags.map((tag) => (
-                    <span key={tag} className="badge tag">
+                    <span key={tag} className="cat-badge context-tag">
                       {tag}
                     </span>
                   ))}
@@ -145,16 +148,16 @@ export function ReviewView() {
         </div>
 
         {flipped ? (
-          <div className="actions-grid">
+          <div className="action-buttons animate-fade-in">
             {gradeLabels.map((entry) => (
               <button
                 key={entry.grade}
-                className={`rate-button ${entry.className}`}
+                className={`btn-rate ${entry.className}`}
                 onClick={() => void submit(entry.grade)}
                 disabled={submitting}
               >
-                <span>{entry.label}</span>
-                <small>{entry.hint}</small>
+                <span className="rate-text">{entry.label}</span>
+                <span className="rate-sub">{entry.hint}</span>
               </button>
             ))}
           </div>

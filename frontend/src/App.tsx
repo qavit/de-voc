@@ -10,11 +10,11 @@ function AppFrame() {
   const { locale, setLocale, t } = useI18n()
 
   return (
-    <div className="app-shell">
-      <aside className="sidebar">
+    <div className="app-layout">
+      <aside className="side-nav">
         <div>
           <p className="eyebrow">{t('app.eyebrow')}</p>
-          <h1>{t('app.title')}</h1>
+          <h1 className="nav-logo">{t('app.title')}</h1>
         </div>
         <label className="locale-picker">
           <span>{t('app.localeLabel')}</span>
@@ -34,7 +34,7 @@ function AppFrame() {
         </nav>
       </aside>
 
-      <main className="content-panel">
+      <main className="main-content">
         {view === 'manager' ? <ManagerView /> : <ReviewView />}
       </main>
     </div>

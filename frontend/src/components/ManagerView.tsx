@@ -73,46 +73,50 @@ export function ManagerView() {
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
   return (
-    <div className="manager-shell">
-      <header className="page-header">
+    <div className="manager-container">
+      <header className="manager-header">
         <div>
           <p className="eyebrow">{t('manager.eyebrow')}</p>
           <h1>{t('manager.title')}</h1>
         </div>
-        <div className="filters">
-          <input
-            value={search}
-            onChange={(event) => {
-              setPage(1)
-              setSearch(event.target.value)
-            }}
-            placeholder={t('manager.searchPlaceholder')}
-          />
-          <select
-            value={partOfSpeech}
-            onChange={(event) => {
-              setPage(1)
-              setPartOfSpeech(event.target.value)
-            }}
-          >
-            <option value="">{t('manager.allPos')}</option>
-            <option value="noun">{t('manager.noun')}</option>
-            <option value="verb">{t('manager.verb')}</option>
-            <option value="adjective">{t('manager.adjective')}</option>
-          </select>
-          <select value={sort} onChange={(event) => setSort(event.target.value)}>
-            <option value="lemma">{t('manager.sortLemma')}</option>
-            <option value="part_of_speech">{t('manager.sortPos')}</option>
-            <option value="category">{t('manager.sortCategory')}</option>
-            <option value="due_at">{t('manager.sortDueDate')}</option>
-          </select>
+        <div className="header-controls">
+          <div className="search-bar">
+            <input
+              value={search}
+              onChange={(event) => {
+                setPage(1)
+                setSearch(event.target.value)
+              }}
+              placeholder={t('manager.searchPlaceholder')}
+            />
+          </div>
+          <div className="filters">
+            <select
+              value={partOfSpeech}
+              onChange={(event) => {
+                setPage(1)
+                setPartOfSpeech(event.target.value)
+              }}
+            >
+              <option value="">{t('manager.allPos')}</option>
+              <option value="noun">{t('manager.noun')}</option>
+              <option value="verb">{t('manager.verb')}</option>
+              <option value="adjective">{t('manager.adjective')}</option>
+            </select>
+            <select value={sort} onChange={(event) => setSort(event.target.value)}>
+              <option value="lemma">{t('manager.sortLemma')}</option>
+              <option value="part_of_speech">{t('manager.sortPos')}</option>
+              <option value="category">{t('manager.sortCategory')}</option>
+              <option value="due_at">{t('manager.sortDueDate')}</option>
+            </select>
+          </div>
         </div>
       </header>
 
       {error && <div className="error-state">{error}</div>}
 
-      <div className="manager-grid">
-        <section className="card table-card">
+      <div className="manager-main manager-split">
+        <section className="manager-section">
           <div className="table-meta">
             <span>{t('common.entries', { count: formatNumber(total) })}</span>
             <span>{t('common.pageOf', { page: formatNumber(page), total: formatNumber(pageCount) })}</span>
@@ -123,7 +127,7 @@ export function ManagerView() {
           ) : items.length === 0 ? (
             <div className="empty-state">{t('manager.noResults')}</div>
           ) : (
-            <div className="table-wrap">
+            <div className="table-responsive">
               <table className="vocab-table">
                 <thead>
                   <tr>
@@ -143,20 +147,18 @@ export function ManagerView() {
                       <td>
                         <div className="lemma-cell">
                           <strong>{item.lemma}</strong>
-                          {item.german_detail?.article && (
-                            <span className="badge neutral">{item.german_detail.article}</span>
-                          )}
+                          {item.german_detail?.article && <span className="cat-badge">{item.german_detail.article}</span>}
                           {item.german_detail?.is_strong_verb && (
-                            <span className="badge strong">{t('manager.strong')}</span>
+                            <span className="badge strong-verb">{t('manager.strong')}</span>
                           )}
                         </div>
                       </td>
                       <td>{item.part_of_speech ?? t('common.none')}</td>
                       <td>{meaningSummary(item) || t('common.none')}</td>
                       <td>
-                        <div className="tag-list">
+                        <div className="tag-container">
                           {item.tags.map((tag) => (
-                            <span key={tag} className="badge tag">
+                            <span key={tag} className="cat-badge context-tag">
                               {tag}
                             </span>
                           ))}
@@ -180,7 +182,7 @@ export function ManagerView() {
           </div>
         </section>
 
-        <aside className="card detail-card">
+        <aside className="detail-panel">
           {!selectedId ? (
             <div className="empty-state">{t('manager.detailEmpty')}</div>
           ) : detailLoading || !selectedDetail ? (
@@ -192,7 +194,7 @@ export function ManagerView() {
                   <p className="eyebrow">{t('manager.detailEyebrow')}</p>
                   <h2>{selectedDetail.lemma}</h2>
                 </div>
-                <span className="badge neutral">{selectedDetail.part_of_speech ?? t('common.unknown')}</span>
+                <span className="cat-badge sub">{selectedDetail.part_of_speech ?? t('common.unknown')}</span>
               </div>
 
               <div className="detail-block">
