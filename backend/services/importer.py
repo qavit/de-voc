@@ -121,8 +121,18 @@ def load_review_decisions(review_csv_path: str | None) -> dict[int, list[dict]]:
     decisions: dict[int, list[dict]] = {}
     with open(review_csv_path, "r", encoding="utf-8-sig", newline="") as handle:
         reader = csv.DictReader(handle)
+        fieldnames = reader.fieldnames or []
+        if "row_number" not in fieldnames:
+            print(
+                "Review CSV is using a legacy format without 'row_number'; "
+                "ignoring manual review decisions for this run."
+            )
+            return {}
         for row in reader:
-            row_number = int(row["row_number"])
+            row_number_raw = row.get("row_number")
+            if not row_number_raw:
+                continue
+            row_number = int(row_number_raw)
             decisions.setdefault(row_number, []).append(row)
     return decisions
 

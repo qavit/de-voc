@@ -7,7 +7,7 @@ from sqlalchemy.orm import sessionmaker
 
 from backend.models import Base, ReviewEvent, StudySession, Vocabulary, VocabularyTag
 from backend.schemas import ReviewEventCreate
-from backend.services.importer import build_anomaly_rows, import_records
+from backend.services.importer import build_anomaly_rows, import_records, load_review_decisions
 from backend.services.srs import SRSStateSnapshot, apply_sm2_like_review
 from backend.services.vocabulary import create_due_session, list_vocabularies, record_review_event
 
@@ -131,6 +131,17 @@ class FoundationTests(unittest.TestCase):
         updated = apply_sm2_like_review(initial, 3)
         self.assertGreater(updated.interval_days, initial.interval_days)
         self.assertGreater(updated.ease_factor, initial.ease_factor)
+
+    def test_load_review_decisions_ignores_legacy_csv_without_row_number(self):
+        csv_path = Path(self.tempdir.name) / "legacy_review.csv"
+        csv_path.write_text(
+            "單字,類別,次類別,Unnamed: 7,Proposed_次類別,中文釋義,Unnamed: 9,Proposed_中文釋義\n"
+            "Abstand,Begriff,Eigenschaft,,Eigenschaft,距離,Entfernung,距離 (Note: Entfernung)\n",
+            encoding="utf-8-sig",
+        )
+
+        decisions = load_review_decisions(str(csv_path))
+        self.assertEqual(decisions, {})
 
 
 if __name__ == "__main__":
