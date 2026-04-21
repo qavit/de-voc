@@ -6,11 +6,14 @@ import type { VocabularyDetailDTO, VocabularyListItemDTO } from '../types/api'
 
 const PAGE_SIZE = 20
 
-function meaningSummary(vocabulary: VocabularyListItemDTO) {
+function meaningSummary(vocabulary: VocabularyListItemDTO, t: (key: string) => string) {
   return vocabulary.meanings
     .slice()
     .sort((a, b) => a.position - b.position)
-    .map((item) => `${item.language_code.toUpperCase()}: ${item.text}`)
+    .map((item) => {
+      const langLabel = t(`langCode.${item.language_code}`) || item.language_code.toUpperCase()
+      return `${langLabel}: ${item.text}`
+    })
     .join(' / ')
 }
 
@@ -214,8 +217,8 @@ export function ManagerView() {
                           )}
                         </div>
                       </td>
-                      <td>{item.part_of_speech ?? t('common.none')}</td>
-                      <td>{meaningSummary(item) || t('common.none')}</td>
+                      <td>{item.part_of_speech ? t(`pos.${item.part_of_speech}`) : t('common.none')}</td>
+                      <td>{meaningSummary(item, t) || t('common.none')}</td>
                       <td>
                         <div className="tag-container">
                           {item.tags.map((tag) => (
@@ -255,7 +258,11 @@ export function ManagerView() {
                   <p className="eyebrow">{t('manager.detailEyebrow')}</p>
                   <h2>{selectedDetail.lemma}</h2>
                 </div>
-                <span className="cat-badge sub">{selectedDetail.part_of_speech ?? t('common.unknown')}</span>
+                <span className="cat-badge sub">
+                  {selectedDetail.part_of_speech
+                    ? t(`pos.${selectedDetail.part_of_speech}`)
+                    : t('common.unknown')}
+                </span>
               </div>
 
               <div className="detail-block">
@@ -263,7 +270,7 @@ export function ManagerView() {
                 <ul className="plain-list">
                   {selectedDetail.meanings.map((meaning) => (
                     <li key={`${meaning.language_code}-${meaning.position}`}>
-                      <strong>{meaning.language_code.toUpperCase()}</strong>: {meaning.text}
+                      <strong>{t(`langCode.${meaning.language_code}`) || meaning.language_code.toUpperCase()}</strong>: {meaning.text}
                     </li>
                   ))}
                 </ul>
@@ -271,16 +278,40 @@ export function ManagerView() {
 
               <div className="detail-block">
                 <h3>{t('manager.germanDetail')}</h3>
-                <div className="meta-grid">
-                  <span>{t('manager.article')}: {selectedDetail.german_detail?.article ?? t('common.none')}</span>
-                  <span>{t('manager.plural')}: {selectedDetail.german_detail?.plural_form ?? t('common.none')}</span>
-                  <span>{t('manager.praesens')}: {selectedDetail.german_detail?.present_3sg ?? t('common.none')}</span>
-                  <span>{t('manager.praeteritum')}: {selectedDetail.german_detail?.preterite ?? t('common.none')}</span>
-                  <span>{t('manager.partizipII')}: {selectedDetail.german_detail?.partizip_ii ?? t('common.none')}</span>
-                  <span>{t('manager.comparative')}: {selectedDetail.german_detail?.comparative ?? t('common.none')}</span>
-                  <span>{t('manager.superlative')}: {selectedDetail.german_detail?.superlative ?? t('common.none')}</span>
-                  <span>{t('manager.verbPatterns')}: {selectedDetail.german_detail?.verb_patterns.join(', ') || t('common.none')}</span>
-                </div>
+                {selectedDetail.part_of_speech === 'noun' && (
+                  <div className="meta-grid">
+                    <span>{t('manager.article')}: {selectedDetail.german_detail?.article ?? t('common.none')}</span>
+                    <span>{t('manager.plural')}: {selectedDetail.german_detail?.plural_form ?? t('common.none')}</span>
+                  </div>
+                )}
+                {selectedDetail.part_of_speech === 'verb' && (
+                  <div className="meta-grid">
+                    <span>{t('manager.praesens')}: {selectedDetail.german_detail?.present_3sg ?? t('common.none')}</span>
+                    <span>{t('manager.praeteritum')}: {selectedDetail.german_detail?.preterite ?? t('common.none')}</span>
+                    <span>{t('manager.partizipII')}: {selectedDetail.german_detail?.partizip_ii ?? t('common.none')}</span>
+                    <span>{t('manager.auxiliary')}: {selectedDetail.german_detail?.auxiliary ?? t('common.none')}</span>
+                    {selectedDetail.german_detail?.verb_patterns && selectedDetail.german_detail.verb_patterns.length > 0 && (
+                      <span className="meta-full">{t('manager.verbPatterns')}: {selectedDetail.german_detail.verb_patterns.join(', ')}</span>
+                    )}
+                    {selectedDetail.german_detail?.is_strong_verb && (
+                      <span className="meta-full"><span className="badge strong-verb">{t('manager.strong')}</span></span>
+                    )}
+                  </div>
+                )}
+                {selectedDetail.part_of_speech === 'adjective' && (
+                  <div className="meta-grid">
+                    <span>{t('manager.comparative')}: {selectedDetail.german_detail?.comparative ?? t('common.none')}</span>
+                    <span>{t('manager.superlative')}: {selectedDetail.german_detail?.superlative ?? t('common.none')}</span>
+                  </div>
+                )}
+                {!selectedDetail.part_of_speech && selectedDetail.german_detail?.article && (
+                  <div className="meta-grid">
+                    <span>{t('manager.article')}: {selectedDetail.german_detail.article}</span>
+                  </div>
+                )}
+                {!selectedDetail.part_of_speech && !selectedDetail.german_detail?.article && (
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{t('common.unknown')}</p>
+                )}
               </div>
 
               <div className="detail-block">

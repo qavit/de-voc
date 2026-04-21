@@ -33,7 +33,6 @@ def split_multivalue(value: str | None) -> list[str]:
 
 def detect_part_of_speech(category: str | None, lemma: str, variations: str | None) -> str | None:
     category_text = (category or "").lower()
-    variations_text = (variations or "").lower()
     if "verb" in category_text or "動詞" in category_text:
         return "verb"
     if "noun" in category_text or "名詞" in category_text:
@@ -46,7 +45,16 @@ def detect_part_of_speech(category: str | None, lemma: str, variations: str | No
     # Noun: variations field starts with article (e.g. "die Bronze (Sg.)")
     if re.match(r"^(der|die|das)\s+", (variations or "").strip(), re.IGNORECASE):
         return "noun"
-    if "sich " in lemma.lower() or "+" in variations_text:
+    # Verb: last comma-piece contains 'hat/ist + word' (partizip pattern)
+    # e.g. "versuchen, versucht, versuchte, hat versucht"
+    if variations:
+        pieces = [p.strip() for p in variations.split(",") if p.strip()]
+        if len(pieces) >= 3 and re.search(r"\b(hat|ist|haben|sein)\b", pieces[-1], re.IGNORECASE):
+            return "verb"
+        # Adjective: exactly 3 pieces, last starts with "am " (am hellsten)
+        if len(pieces) == 3 and pieces[-1].lower().startswith("am "):
+            return "adjective"
+    if "sich " in lemma.lower() or "+" in (variations or "").lower():
         return "verb"
     return None
 
@@ -108,31 +116,52 @@ def parse_german_detail(
         elif pieces and not re.match(r"^(der|die|das)\s+", pieces[0], re.IGNORECASE):
             # Raw comma-split fallback, only if first piece is not an article phrase
             detail["plural_form"] = pieces[0]
+
     elif part_of_speech == "verb":
         if "及物" in (sub_category or ""):
             detail["transitivity"] = "transitive"
         elif "不及物" in (sub_category or ""):
             detail["transitivity"] = "intransitive"
 
-        if len(pieces) >= 1:
-            detail["present_3sg"] = pieces[0]
-        if len(pieces) >= 2:
-            detail["preterite"] = pieces[1]
-        if len(pieces) >= 3:
-            detail["partizip_ii"] = pieces[2]
+        # Skip first piece if it's the infinitive (= lemma)
+        effective = list(pieces)
+        if effective and effective[0].lower().rstrip() == lemma.lower().rstrip():
+            effective = effective[1:]
+
+        if len(effective) >= 1:
+            detail["present_3sg"] = effective[0]
+        if len(effective) >= 2:
+            detail["preterite"] = effective[1]
+        if len(effective) >= 3:
+            raw_part = effective[2]
+            # Strip hat/ist prefix from partizip_ii (e.g. "hat versucht" → "versucht")
+            detail["partizip_ii"] = re.sub(
+                r"^(?:hat|ist|haben|sein)\s+", "", raw_part, flags=re.IGNORECASE
+            ).strip()
+
         if re.search(r"\b(ist|hat)\b", lower_variations):
             detail["auxiliary"] = "sein" if "ist" in lower_variations else "haben"
+
+        # Strong verb: explicit marker OR preterite doesn't end in regular weak forms
+        preterite = detail["preterite"] or ""
         detail["is_strong_verb"] = bool(
-            re.search(r"\b(strong|stark)\b", lower_variations) or len(pieces) >= 3
+            re.search(r"\b(strong|stark)\b", lower_variations)
+            or (preterite and not re.search(r"te[ns]?$", preterite))
         )
         detail["verb_patterns"] = [
             item for item in split_multivalue(variations) if "+" in item or item.lower().startswith("sich ")
         ]
+
     elif part_of_speech == "adjective":
-        if len(pieces) >= 1:
-            detail["comparative"] = pieces[0]
-        if len(pieces) >= 2:
-            detail["superlative"] = pieces[1]
+        # Skip first piece if it's the base form (= lemma)
+        effective = list(pieces)
+        if effective and effective[0].lower().rstrip() == lemma.lower().rstrip():
+            effective = effective[1:]
+
+        if len(effective) >= 1:
+            detail["comparative"] = effective[0]
+        if len(effective) >= 2:
+            detail["superlative"] = effective[1]
 
     return {"lemma": lemma, **detail}
 
@@ -339,12 +368,11 @@ def import_records(
                 )
             )
 
-        # Build tag list: (name, tag_type) tuples - category, sub_category, context
+        # Build hierarchical category tag (cat/subcat path) + context tags
         all_tags: list[tuple[str, str]] = []
         if category:
-            all_tags.append((category, "category"))
-        if sub_category:
-            all_tags.append((sub_category, "sub_category"))
+            tag_path = f"{category}/{sub_category}" if sub_category else category
+            all_tags.append((tag_path, "category"))
         for tag_name in context_tags:
             if tag_name:
                 all_tags.append((tag_name, "context"))

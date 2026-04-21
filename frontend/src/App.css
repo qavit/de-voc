@@ -633,3 +633,7 @@ a {
   color: var(--text-secondary);
   margin-top: 0.5rem;
 }
+
+.meta-full {
+  grid-column: 1 / -1;
+}

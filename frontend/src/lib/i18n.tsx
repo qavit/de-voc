@@ -83,6 +83,19 @@ const dictionaries: Record<SupportedLocale, TranslationTree> = {
       due: 'Due',
       dictionaryLinks: 'Dictionary Links',
       notes: 'Notes',
+      auxiliary: 'Auxiliary',
+      strongVerb: 'Strong verb',
+    },
+    pos: {
+      noun: 'Noun',
+      verb: 'Verb',
+      adjective: 'Adjective',
+      unknown: '—',
+    },
+    langCode: {
+      zh: 'Chinese',
+      en: 'English',
+      nan: 'Taiwanese',
     },
     review: {
       loadingSession: 'Loading review session...',
@@ -175,6 +188,19 @@ const dictionaries: Record<SupportedLocale, TranslationTree> = {
       due: 'Fällig',
       dictionaryLinks: 'Wörterbuch-Links',
       notes: 'Notizen',
+      auxiliary: 'Hilfsverb',
+      strongVerb: 'Starkes Verb',
+    },
+    pos: {
+      noun: 'Substantiv',
+      verb: 'Verb',
+      adjective: 'Adjektiv',
+      unknown: '—',
+    },
+    langCode: {
+      zh: 'Chinesisch',
+      en: 'Englisch',
+      nan: 'Taiwanesisch',
     },
     review: {
       loadingSession: 'Lernsitzung wird geladen...',
@@ -267,6 +293,19 @@ const dictionaries: Record<SupportedLocale, TranslationTree> = {
       due: '到期時間',
       dictionaryLinks: '外部辭典連結',
       notes: '筆記',
+      auxiliary: '助動詞',
+      strongVerb: '強變化動詞',
+    },
+    pos: {
+      noun: '名詞',
+      verb: '動詞',
+      adjective: '形容詞',
+      unknown: '—',
+    },
+    langCode: {
+      zh: '中文',
+      en: '英文',
+      nan: '台文',
     },
     review: {
       loadingSession: '複習 session 載入中...',
