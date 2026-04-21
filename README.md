@@ -1,6 +1,6 @@
 # German Vocab Master
 
-德文單字管理與複習系統。將基於 Excel 的單字清單轉移至具備關聯式資料庫與網頁介面的全端應用，並支援間隔重複（Spaced Repetition System, SRS）與 LLM 輔助學習功能。
+德文單字管理與複習系統。專案已從單表 MVP 升級為可擴充的本地端平台骨架，包含正規化詞條資料、SRS 狀態與作答事件紀錄、以及可重跑的 Excel 匯入流程。
 
 ## 系統架構
 
@@ -22,15 +22,23 @@ de-voc/
 
 本專案採前後端分離架構，需分別啟動服務。
 
-### 1. 啟動後端 API
+### 1. 先建立或重建本地資料庫
+匯入流程分成三步：
+```bash
+uv run python scripts/convert.py /path/to/German_voc.xlsx
+uv run python scripts/anomaly_checker.py
+uv run python backend/migrate_db.py --reset
+```
+第二步會輸出 `data/shift_review.csv`，可先人工調整 `review_status` 與 `review_note` 後再正式匯入。
+
+### 2. 啟動後端 API
 於專案根目錄下執行：
 ```bash
 uv run uvicorn backend.main:app --reload
 ```
-後端服務運行於 `http://127.0.0.1:8000`。
-API 文件：`http://127.0.0.1:8000/docs`
+後端服務運行於 `http://127.0.0.1:8000`，API 文件位於 `http://127.0.0.1:8000/docs`。
 
-### 2. 啟動前端介面
+### 3. 啟動前端介面
 於 `frontend` 目錄下執行：
 ```bash
 cd frontend
@@ -39,9 +47,16 @@ npm run dev
 ```
 前端服務運行於 `http://localhost:5173`。
 
-## 功能藍圖 (Roadmap)
-- [x] **Phase 1: 資料遷移**：建立 SQLite 正規化資料庫，匯入並清理 Excel 原始資料。
-- [x] **Phase 2: 管理介面**：實作具備條件檢索及標籤篩選功能的前端介面。
-- [x] **Phase 3: 複習系統 (SRS)**：基於 SM-2 演算法開發學習測驗功能，記錄並運算複習間隔。
-- [ ] **Phase 4: LLM 整合**：串接 LLM API 自動生成德文情境例句與動詞不規則變化標記。
-- [ ] **Phase 5: 數據儀表板**：實作使用者學習紀錄圖表。
+## 現階段能力
+- 詞條主表 + meanings/examples/tags/german_detail/SRS state 的關聯式資料模型
+- `review_events` 與 `study_sessions` 事件紀錄，可支援未來 heatmap 與 dashboard
+- `GET /api/vocabularies` 列表查詢，支援搜尋、詞性篩選、標籤篩選、排序、分頁
+- `GET /api/vocabularies/{id}` 詳情查詢，包含德文屬性與外部辭典連結
+- `GET /api/review/due` 與 `POST /api/review/events` 的 session-oriented 複習流程
+- `GET /api/stats/overview` 的基礎統計資料
+
+## 驗證
+```bash
+uv run python -m unittest discover -s tests -p 'test_*.py'
+cd frontend && npm run build
+```
