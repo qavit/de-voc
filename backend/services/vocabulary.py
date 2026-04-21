@@ -234,7 +234,7 @@ def record_review_event(db: Session, payload: ReviewEventCreate) -> ReviewEventR
         session = db.query(StudySession).filter(StudySession.id == payload.session_id).first()
         if session:
             session.completed_cards = min(session.total_cards, session.completed_cards + 1)
-            if session.completed_cards >= session.total_cards and session.completed_at is None:
+            if session.total_cards > 0 and session.completed_cards >= session.total_cards and session.completed_at is None:
                 session.completed_at = reviewed_at
 
     event = ReviewEvent(

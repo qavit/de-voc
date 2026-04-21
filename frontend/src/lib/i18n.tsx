@@ -345,6 +345,9 @@ function resolveTranslation(locale: SupportedLocale, key: string): TranslationVa
   if (typeof resolved === 'string' || typeof resolved === 'function') {
     return resolved
   }
+  if (import.meta.env.DEV) {
+    console.warn(`[i18n] Missing translation key: "${key}" for locale "${locale}"`)
+  }
   return key
 }
 
