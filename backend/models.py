@@ -85,14 +85,16 @@ class VocabularyExample(Base):
 
 class VocabularyTag(Base):
     __tablename__ = "vocabulary_tags"
+    __table_args__ = (UniqueConstraint("name", "tag_type", name="uq_tag_name_type"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    name: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
+    name: Mapped[str] = mapped_column(String, index=True, nullable=False)
     tag_type: Mapped[str] = mapped_column(String, default="context", nullable=False)
 
     vocab_links: Mapped[list["VocabularyTagLink"]] = relationship(
         back_populates="tag", cascade="all, delete-orphan"
     )
+
 
 
 class VocabularyTagLink(Base):

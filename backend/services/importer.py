@@ -40,17 +40,29 @@ def detect_part_of_speech(category: str | None, lemma: str, variations: str | No
         return "noun"
     if "adjective" in category_text or "形容詞" in category_text:
         return "adjective"
+    # Noun: raw_word has article prefix
     if re.match(r"^(der|die|das)\s+", lemma.lower()):
+        return "noun"
+    # Noun: variations field starts with article (e.g. "die Bronze (Sg.)")
+    if re.match(r"^(der|die|das)\s+", (variations or "").strip(), re.IGNORECASE):
         return "noun"
     if "sich " in lemma.lower() or "+" in variations_text:
         return "verb"
     return None
 
 
-def extract_article_and_lemma(raw_word: str, part_of_speech: str | None) -> tuple[str, str | None]:
+def extract_article_and_lemma(
+    raw_word: str, part_of_speech: str | None, variations: str | None = None
+) -> tuple[str, str | None]:
+    # Try raw_word first (e.g. "die Bronze" in the word column)
     match = re.match(r"^(der|die|das)\s+(.+)$", raw_word.strip(), re.IGNORECASE)
     if part_of_speech == "noun" and match:
         return match.group(2).strip(), match.group(1).lower()
+    # Fall back to variations field (e.g. "die Bronze (Sg.)")
+    if part_of_speech == "noun" and variations:
+        var_match = re.match(r"^(der|die|das)\s+", variations.strip(), re.IGNORECASE)
+        if var_match:
+            return raw_word.strip(), var_match.group(1).lower()
     return raw_word.strip(), None
 
 
@@ -60,7 +72,7 @@ def parse_german_detail(
     variations: str | None,
     sub_category: str | None,
 ) -> dict:
-    lemma, article = extract_article_and_lemma(raw_word, part_of_speech)
+    lemma, article = extract_article_and_lemma(raw_word, part_of_speech, variations)
     pieces = [piece.strip() for piece in (variations or "").split(",") if piece.strip()]
     detail = {
         "article": article,
@@ -78,7 +90,23 @@ def parse_german_detail(
 
     lower_variations = (variations or "").lower()
     if part_of_speech == "noun":
-        if pieces:
+        # Parse from variations: "(der|die|das) Lemma[, plural_suffix][ (Sg.|Pl.)]"
+        var_match = re.match(
+            r"^(?:der|die|das)\s+\S+\s*(?:,\s*([^()\n]+?))?(?:\s*\(([^)]+)\))?\s*$",
+            (variations or "").strip(),
+            re.IGNORECASE,
+        )
+        if var_match:
+            plural_suffix = (var_match.group(1) or "").strip()
+            marker = (var_match.group(2) or "").strip().lower()
+            if "sg" in marker:
+                detail["plural_form"] = "(Sg.)"
+            elif "pl" in marker:
+                detail["plural_form"] = "(Pl.)"
+            elif plural_suffix:
+                detail["plural_form"] = plural_suffix
+        elif pieces and not re.match(r"^(der|die|das)\s+", pieces[0], re.IGNORECASE):
+            # Raw comma-split fallback, only if first piece is not an article phrase
             detail["plural_form"] = pieces[0]
     elif part_of_speech == "verb":
         if "及物" in (sub_category or ""):
@@ -208,7 +236,7 @@ def import_records(
     updated = 0
 
     tag_cache: dict[str, VocabularyTag] = {
-        tag.name: tag for tag in db.query(VocabularyTag).all()
+        f"{tag.tag_type}:{tag.name}": tag for tag in db.query(VocabularyTag).all()
     }
 
     for row in records:
@@ -311,13 +339,24 @@ def import_records(
                 )
             )
 
-        for tag_name in dict.fromkeys([tag for tag in context_tags if tag]):
-            tag = tag_cache.get(tag_name)
+        # Build tag list: (name, tag_type) tuples - category, sub_category, context
+        all_tags: list[tuple[str, str]] = []
+        if category:
+            all_tags.append((category, "category"))
+        if sub_category:
+            all_tags.append((sub_category, "sub_category"))
+        for tag_name in context_tags:
+            if tag_name:
+                all_tags.append((tag_name, "context"))
+
+        for tag_name, tag_type in dict.fromkeys(all_tags):
+            cache_key = f"{tag_type}:{tag_name}"
+            tag = tag_cache.get(cache_key)
             if not tag:
-                tag = VocabularyTag(name=tag_name, tag_type="context")
+                tag = VocabularyTag(name=tag_name, tag_type=tag_type)
                 db.add(tag)
                 db.flush()
-                tag_cache[tag_name] = tag
+                tag_cache[cache_key] = tag
             vocabulary.tags.append(VocabularyTagLink(tag_id=tag.id))
 
         if not vocabulary.srs_state:
