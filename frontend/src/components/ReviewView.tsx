@@ -2,10 +2,11 @@ import { useEffect, useState } from 'react'
 
 import { fetchDueSession, fetchOverviewStats, submitReviewEvent } from '../lib/api'
 import { useI18n } from '../lib/i18n'
+import { localizeTag } from '../lib/tagTranslations'
 import type { DueReviewResponse, StatsOverviewDTO, VocabularyDetailDTO } from '../types/api'
 
 export function ReviewView() {
-  const { t, formatNumber } = useI18n()
+  const { locale, t, formatNumber } = useI18n()
   const [sessionData, setSessionData] = useState<DueReviewResponse | null>(null)
   const [stats, setStats] = useState<StatsOverviewDTO | null>(null)
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -138,7 +139,7 @@ export function ReviewView() {
                 <div className="tag-container justify-center mt-4">
                   {activeCard.tags.map((tag) => (
                     <span key={tag} className="cat-badge context-tag">
-                      {tag}
+                      {localizeTag(tag, locale)}
                     </span>
                   ))}
                 </div>

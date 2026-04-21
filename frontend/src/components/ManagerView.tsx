@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 
 import { fetchVocabularyDetail, fetchVocabularies, llmAutofill, llmGenerateExamples, llmValidate, type LLMUsageDTO } from '../lib/api'
 import { useI18n } from '../lib/i18n'
+import { localizeTag } from '../lib/tagTranslations'
 import type { VocabularyDetailDTO, VocabularyListItemDTO } from '../types/api'
 
 const PAGE_SIZE = 20
@@ -18,7 +19,7 @@ function meaningSummary(vocabulary: VocabularyListItemDTO, t: (key: string) => s
 }
 
 export function ManagerView() {
-  const { t, formatDateTime, formatNumber } = useI18n()
+  const { locale, t, formatDateTime, formatNumber } = useI18n()
   const [items, setItems] = useState<VocabularyListItemDTO[]>([])
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [selectedDetail, setSelectedDetail] = useState<VocabularyDetailDTO | null>(null)
@@ -223,7 +224,7 @@ export function ManagerView() {
                         <div className="tag-container">
                           {item.tags.map((tag) => (
                             <span key={tag} className="cat-badge context-tag">
-                              {tag}
+                              {localizeTag(tag, locale)}
                             </span>
                           ))}
                           {item.tags.length === 0 && t('common.none')}
